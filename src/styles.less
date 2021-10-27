@@ -1,0 +1,88 @@
+.react-rnd-dragline-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+
+	.react-rnd-dragline-node {
+		position: absolute;
+		left: 0;
+		top: 0;
+
+		&:hover {
+			outline: 1px dashed #ddd;
+		}
+	}
+
+	.resizable-handler {
+		position: absolute;
+		user-select: none;
+	}
+
+	.resizable-handle-top {
+		width: 100%;
+		height: 10px;
+		top: -5px;
+		left: 0px;
+		cursor: row-resize;
+	}
+
+	.resizable-handle-right {
+		width: 10px;
+		height: 100%;
+		top: 0px;
+		right: -5px;
+		cursor: col-resize;
+	}
+
+	.resizable-handle-bottom {
+		width: 100%;
+		height: 10px;
+		bottom: -5px;
+		left: 0px;
+		cursor: row-resize;
+	}
+
+	.resizable-handle-left {
+		width: 10px;
+		height: 100%;
+		top: 0px;
+		left: -5px;
+		cursor: col-resize;
+	}
+
+	.resizable-handle-top-right {
+		width: 20px;
+		height: 20px;
+		position: absolute;
+		right: -10px;
+		top: -10px;
+		cursor: ne-resize;
+	}
+
+	.resizable-handle-bottom-right {
+		width: 20px;
+		height: 20px;
+		position: absolute;
+		right: -10px;
+		bottom: -10px;
+		cursor: se-resize;
+	}
+
+	.resizable-handle-bottom-left {
+		width: 20px;
+		height: 20px;
+		position: absolute;
+		left: -10px;
+		bottom: -10px;
+		cursor: sw-resize;
+	}
+
+	.resizable-handle-top-left {
+		width: 20px;
+		height: 20px;
+		position: absolute;
+		left: -10px;
+		top: -10px;
+		cursor: nw-resize;
+	}
+}

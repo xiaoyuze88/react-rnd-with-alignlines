@@ -1,0 +1,85 @@
+{
+	"name": "react-rnd-with-alignlines",
+	"version": "0.0.1",
+	"description": "React draggable/resizable with align lines while dragging or resizing.",
+	"keywords": [
+		"drag",
+		"draggable",
+		"resizable",
+		"alignment guides",
+		"smart guides",
+		"snap to guide"
+	],
+	"author": "xiaoyuze88@gamil.com",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/xiaoyuze88/react-rnd-with-alignlines"
+	},
+	"main": "dist/index.js",
+	"module": "dist/index.es.js",
+	"jsnext:main": "dist/index.es.js",
+	"engines": {
+		"node": ">=8",
+		"npm": ">=5"
+	},
+	"scripts": {
+		"build": "rm -rf ./dist && rollup -c",
+		"start": "rollup -c -w",
+		"prepare": "yarn run build",
+		"predeploy": "cd example && yarn install && yarn run build",
+		"deploy": "gh-pages -d example/build"
+	},
+	"peerDependencies": {
+		"react": "^15.0.0 || ^16.0.0",
+		"react-dom": "^15.0.0 || ^16.0.0"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.8.4",
+		"@babel/core": "^7.9.0",
+		"@babel/plugin-proposal-class-properties": "^7.8.3",
+		"@babel/plugin-proposal-export-default-from": "^7.8.3",
+		"@babel/plugin-proposal-export-namespace-from": "^7.8.3",
+		"@babel/plugin-proposal-object-rest-spread": "^7.9.5",
+		"@babel/preset-env": "^7.9.5",
+		"@babel/preset-react": "^7.9.4",
+		"@svgr/rollup": "^5.3.1",
+		"@types/react": "^17.0.27",
+		"eslint-config-standard": "^14.1.1",
+		"eslint-config-standard-react": "^9.2.0",
+		"eslint-plugin-import": "^2.20.2",
+		"eslint-plugin-node": "^11.1.0",
+		"eslint-plugin-promise": "^4.2.1",
+		"eslint-plugin-react": "^7.19.0",
+		"eslint-plugin-standard": "^4.0.1",
+		"less": "^4.1.2",
+		"react": "^16.13.1",
+		"react-dom": "^16.13.1",
+		"react-scripts": "^3.4.1",
+		"rollup": "^2.3.4",
+		"rollup-plugin-babel": "^4.4.0",
+		"rollup-plugin-commonjs": "^10.1.0",
+		"rollup-plugin-less": "^1.1.3",
+		"rollup-plugin-node-builtins": "^2.1.2",
+		"rollup-plugin-node-resolve": "^5.2.0",
+		"rollup-plugin-peer-deps-external": "^2.2.2",
+		"rollup-plugin-postcss": "2.5.0",
+		"rollup-plugin-sourcemaps": "^0.6.3",
+		"rollup-plugin-typescript2": "^0.30.0",
+		"rollup-plugin-url": "^3.0.1",
+		"svg-url-loader": "^7.1.1",
+		"typescript": "^4.4.3"
+	},
+	"files": [
+		"dist"
+	],
+	"dependencies": {
+		"classnames": "^2.3.1",
+		"document.contains": "^1.0.2",
+		"kebab-case": "^1.0.1",
+		"re-resizable": "^6.9.1",
+		"react-draggable": "^4.4.4",
+		"react-resizable": "^3.0.4",
+		"tslib": "^2.3.1"
+	}
+}
