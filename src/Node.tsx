@@ -212,7 +212,7 @@ export function Node({
         onResize={doResize}
         onResizeStop={doResizeStop}
         enable={active ? undefined : {}}
-        className={classNames('react-rnd-dragline-node', className, {
+        className={classNames('react-rnd-dragline-node', className, `react-rnd-dragline-node_id_${node.id}`, {
           actived: active,
           hover,
         })}
