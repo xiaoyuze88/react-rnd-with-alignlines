@@ -57,6 +57,7 @@ export interface INodeProps extends StyledProps {
   snap?: { x?: number[], y?: number[] };
   snapGap?: number;
   active?: boolean;
+  hover?: boolean;
   resizableProps?: ResizableProps;
 }
 
@@ -72,6 +73,7 @@ export function Node({
   snap,
   snapGap = 5,
   active,
+  hover,
   className,
   style,
   resizableProps,
@@ -212,6 +214,7 @@ export function Node({
         enable={active ? undefined : {}}
         className={classNames('react-rnd-dragline-node', className, {
           actived: active,
+          hover,
         })}
         style={{
           position: 'absolute',

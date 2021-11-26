@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Node } from './Node';
+import React, { MutableRefObject, useMemo, useRef, useState } from 'react';
+import { INodeProps, Node } from './Node';
 import classNames from 'classnames';
 import { ResizableProps } from 're-resizable';
 import 'document.contains';
@@ -92,9 +92,10 @@ export interface IContainer {
   nodeStyle?: React.CSSProperties;
   nodeClassName?: string;
   resizableProps?: ResizableProps;
-  onNodeFocus?: (nodeId: string) => any;
-  onNodeBlur?: (nodeId: string) => any;
-  blurParent?: string;
+  activeNodeId?: string;
+  hoverNodeId?: string;
+  onClickNode?: INodeProps['onClick'];
+  containerRef?: MutableRefObject<any>;
 }
 
 export function unique(array, compare = (a, b) => a === b) {
@@ -117,18 +118,15 @@ export function Container({
   nodeStyle,
   nodeClassName,
   resizableProps,
-  onNodeFocus,
-  onNodeBlur,
-  blurParent,
+  activeNodeId,
+  hoverNodeId,
+  onClickNode = noop,
+  containerRef,
 }: IContainer) {
-  const handleOutsideClickCbRef = useRef(null);
   const $container = useRef(null);
+  const $containerRef = containerRef || $container;
   const $children = useRef(null);
   const [resizeSnap, setResizeSnap] = useState<any>({});
-  const [activeNode, setActiveNode] = useState<{ id: string; $: HTMLElement }>({
-    id: '',
-    $: null,
-  });
   const [guideLines, setGuideLines] = useState<{
     indices: number[];
     vLines: GuideLinePositionData[];
@@ -139,24 +137,13 @@ export function Container({
     hLines: [],
   });
   const containerPosition = useMemo(() => {
-    if ($container.current) {
+    if ($containerRef.current) {
       return createNodePositionData({
-        x: 0, y: 0, w: $container.current.clientWidth, h: $container.current.clientHeight,
+        x: 0, y: 0, w: $containerRef.current.clientWidth, h: $containerRef.current.clientHeight,
       });
     }
     return null;
-  }, [$container.current]);
-
-  handleOutsideClickCbRef.current = (e) => {
-    if (activeNode.$ && !activeNode.$.contains(e.target as any)) {
-      if (blurParent && !document.querySelector(blurParent).contains(e.target)) {
-        return;
-      }
-
-      onNodeBlur(activeNode.id)
-      setActiveNode({ id: '', $: null });
-    }
-  };
+  }, [$containerRef.current]);
 
   const calcAndDrawLines = (
     currentNodePosData: NodePositionData,
@@ -210,7 +197,7 @@ export function Container({
       y,
     };
 
-    nextPosition = checkDragOut(nextPosition, $container.current);
+    nextPosition = checkDragOut(nextPosition, $containerRef.current);
 
     const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
 
@@ -338,16 +325,13 @@ export function Container({
         onResizeStart={(e, direction) => onResizeStart(index, direction)}
         onResizeStop={(e, direction, delta) => onResizeStop(index, direction, delta)}
         snap={resizeSnap}
-        active={activeNode.id === node.id}
+        active={activeNodeId === node.id}
+        hover={hoverNodeId === node.id}
         className={nodeClassName}
         style={nodeStyle}
         resizableProps={resizableProps}
         onClick={(e, node, element) => {
-          onNodeFocus(node.id);
-          setActiveNode({
-            id: node.id,
-            $: element,
-          });
+          onClickNode(e, node, element);
         }}
       />
     ));
@@ -392,17 +376,11 @@ export function Container({
     )
   };
 
-  useEffect(() => {
-    document.addEventListener('click', (e) => {
-      handleOutsideClickCbRef.current(e);
-    });
-  }, []);
-
   return (
     <div
       className={classNames('react-rnd-dragline-container', containerClassName)}
       style={containerStyle}
-      ref={$container}
+      ref={$containerRef}
     >
       {renderNodes()}
       {renderGuidelines()}
