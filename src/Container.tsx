@@ -29,6 +29,8 @@ export interface INode {
     style: React.CSSProperties;
     [propKey: string]: any;
   }) => React.ReactElement;
+
+  [extendPropName: string]: any;
 }
 
 export type DirectionKey = 'x' | 'y';
@@ -96,6 +98,7 @@ export interface IContainer {
   hoverNodeId?: string;
   onClickNode?: INodeProps['onClick'];
   containerRef?: MutableRefObject<any>;
+  mapNodeProps?: (node: INode, index: number) => any;
 }
 
 export function unique(array, compare = (a, b) => a === b) {
@@ -122,6 +125,7 @@ export function Container({
   hoverNodeId,
   onClickNode = noop,
   containerRef,
+  mapNodeProps = noop,
 }: IContainer) {
   const $container = useRef(null);
   const $containerRef = containerRef || $container;
@@ -314,27 +318,40 @@ export function Container({
   };
 
   const renderNodes = () => {
-    return nodes.map((node, index) => (
-      <Node
-        key={node.id || index}
-        node={node}
-        onDrag={(e, { x, y }) => onDrag(index, { x, y })}
-        onDragStart={onStart}
-        onDragStop={onStop}
-        onResize={(e, direction, delta) => onResize(index, direction, delta)}
-        onResizeStart={(e, direction) => onResizeStart(index, direction)}
-        onResizeStop={(e, direction, delta) => onResizeStop(index, direction, delta)}
-        snap={resizeSnap}
-        active={activeNodeId === node.id}
-        hover={hoverNodeId === node.id}
-        className={nodeClassName}
-        style={nodeStyle}
-        resizableProps={resizableProps}
-        onClick={(e, node, element) => {
-          onClickNode(e, node, element);
-        }}
-      />
-    ));
+    return nodes.map((node, index) => {
+      let extendProps = {};
+
+      if (typeof mapNodeProps === 'function') {
+        try {
+          extendProps = mapNodeProps(node, index);
+        } catch (err) {
+          console.warn('mapNodeProps error', err);
+        }
+      }
+
+      return (
+        <Node
+          key={node.id || index}
+          node={node}
+          onDrag={(e, { x, y }) => onDrag(index, { x, y })}
+          onDragStart={onStart}
+          onDragStop={onStop}
+          onResize={(e, direction, delta) => onResize(index, direction, delta)}
+          onResizeStart={(e, direction) => onResizeStart(index, direction)}
+          onResizeStop={(e, direction, delta) => onResizeStop(index, direction, delta)}
+          snap={resizeSnap}
+          active={activeNodeId === node.id}
+          hover={hoverNodeId === node.id}
+          className={nodeClassName}
+          style={nodeStyle}
+          resizableProps={resizableProps}
+          onClick={(e, node, element) => {
+            onClickNode(e, node, element);
+          }}
+          {...extendProps}
+        />
+      );
+    });
   }
 
   const renderGuidelines = () => {
