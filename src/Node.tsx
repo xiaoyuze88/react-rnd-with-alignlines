@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { DraggableCore, DraggableData } from 'react-draggable';
 import { Resizable, ResizableProps } from 're-resizable';
 import classNames from 'classnames';
@@ -102,6 +102,11 @@ export function Node({
     x: 0,
     y: 0,
   });
+
+  const defaultStyle = useMemo(() => ({
+    width: '100%',
+    height: '100%',
+  }), []);
 
   const {
     position: { x, y, w, h },
@@ -234,10 +239,7 @@ export function Node({
       >
         {render({
           node,
-          style: {
-            width: '100%',
-            height: '100%',
-          }
+          style: defaultStyle,
         })}
       </Resizable>
     </DraggableCore>
