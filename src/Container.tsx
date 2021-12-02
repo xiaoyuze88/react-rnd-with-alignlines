@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { ResizableProps } from 're-resizable';
 import 'document.contains';
 import './styles.less';
-import { calcLineValues, calcPosValues, checkDragOut, getGuideLines, noop } from './utils';
+import { calcLineValues, calcPosValues, checkDragOut, getGuideLines, getPaddingArr, noop } from './utils';
 
 /**
  * 表示组件支持通过 className 和 style 进行样式定制
@@ -99,6 +99,7 @@ export interface IContainer {
   onClickNode?: INodeProps['onClick'];
   containerRef?: MutableRefObject<any>;
   mapNodeProps?: (node: INode, index: number) => any;
+  paddingSnap?: number | number[];
 }
 
 export function unique(array, compare = (a, b) => a === b) {
@@ -126,6 +127,7 @@ export function Container({
   onClickNode = noop,
   containerRef,
   mapNodeProps = noop,
+  paddingSnap,
 }: IContainer) {
   const $container = useRef(null);
   const $containerRef = containerRef || $container;
@@ -140,7 +142,7 @@ export function Container({
     vLines: [],
     hLines: [],
   });
-  const containerPosition = useMemo(() => {
+  const containerPosition = useMemo<NodePositionData>(() => {
     if ($containerRef.current) {
       return createNodePositionData({
         x: 0, y: 0, w: $containerRef.current.clientWidth, h: $containerRef.current.clientHeight,
@@ -149,15 +151,55 @@ export function Container({
     return null;
   }, [$containerRef.current]);
 
+  // 如果设置了容器 padding 辅助，则往四个角放上参照物，算辅助线的时候算上它们
+  const paddingSnapPositionArr = useMemo(() => {
+    if (!containerPosition) return null;
+
+    const paddingArr = getPaddingArr(paddingSnap);
+
+    if (!paddingArr) return null;
+
+    const [top, right, bottom, left] = paddingArr;
+    const { w, h } = containerPosition;
+
+    // 给两个容器：
+    // 1. 左右padding的容器上下吸顶
+    // 2. 上下padding的左右吸顶，这样出来的吸附线不会太奇怪
+    return [
+      createNodePositionData({
+        x: left,
+        y: 0,
+        w: w - left - right,
+        h: h,
+      }),
+      createNodePositionData({
+        x: 0,
+        y: top,
+        w: w,
+        h: h - top - bottom,
+      }),
+    ];
+  }, [paddingSnap, containerPosition]);
+
+  const getCompareNodePosDataList = (currentNodeIndex: number): NodePositionData[] => {
+    const compareNodePosDataList = $children.current.filter((_, i) => i !== currentNodeIndex);
+
+    return [
+      ...compareNodePosDataList,
+      containerPosition,
+      ...paddingSnapPositionArr,
+    ];
+  };
+
   const calcAndDrawLines = (
     currentNodePosData: NodePositionData,
     compareNodePosDataList: NodePositionData[],
     directions = DefaultDirections,
   ) => {
-    const { v: x, indices: indices_x, lines: vLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'x', directions.x)
-    const { v: y, indices: indices_y, lines: hLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'y', directions.y)
+    const { v: x, indices: indices_x, lines: vLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'x', directions.x);
+    const { v: y, indices: indices_y, lines: hLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'y', directions.y);
 
-    const indices = unique(indices_x.concat(indices_y))
+    const indices = unique(indices_x.concat(indices_y));
 
     // TODO: x/y轴同时出辅助线且被吸附时，持续微拖会看到辅助线挪动
     // https://github.com/zcued/react-dragline/issues/9
@@ -203,19 +245,14 @@ export function Container({
 
     nextPosition = checkDragOut(nextPosition, $containerRef.current);
 
-    const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
+    const compareNodePosDataList = getCompareNodePosDataList(index);
 
-    // if (compareNodePosDataList.length) {
     const currentNodePosData = createNodePositionData(nextPosition);
 
-    const snapPosition = calcAndDrawLines(currentNodePosData, [
-      ...compareNodePosDataList,
-      containerPosition,
-    ]);
+    const snapPosition = calcAndDrawLines(currentNodePosData, compareNodePosDataList);
 
     nextPosition.x = snapPosition.x;
     nextPosition.y = snapPosition.y;
-    // }
 
     onNodeMove(newNodes[index].id, nextPosition, index);
 
@@ -263,7 +300,7 @@ export function Container({
     onStart();
 
     const currentNodePosData = $children.current[index];
-    const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
+    const compareNodePosDataList = getCompareNodePosDataList(index);
 
     if (compareNodePosDataList.length) {
       const snap: any = {};
@@ -285,7 +322,7 @@ export function Container({
     }
   };
 
-  const onResizeStop = (index, direction, delta) => {
+  const onResizeStop = () => {
     setResizeSnap({});
     setGuideLines({ vLines: [], hLines: [], indices: [] });
   };
@@ -296,7 +333,7 @@ export function Container({
       x, y, w, h
     };
 
-    const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
+    const compareNodePosDataList = getCompareNodePosDataList(index);
 
     if (compareNodePosDataList.length) {
       const currentNodePosData = createNodePositionData(nextPosition);
@@ -304,6 +341,7 @@ export function Container({
       const directions = getDirections(directionList);
 
       // 只用展示辅助线，不用处理吸附，吸附在起拖时就计算好了
+      // TODO：Resize有无处理容器和padding？
       calcAndDrawLines(currentNodePosData, compareNodePosDataList, directions);
     }
 
@@ -338,7 +376,7 @@ export function Container({
           onDragStop={onStop}
           onResize={(e, direction, delta) => onResize(index, direction, delta)}
           onResizeStart={(e, direction) => onResizeStart(index, direction)}
-          onResizeStop={(e, direction, delta) => onResizeStop(index, direction, delta)}
+          onResizeStop={() => onResizeStop()}
           snap={resizeSnap}
           active={activeNodeId === node.id}
           hover={hoverNodeId === node.id}

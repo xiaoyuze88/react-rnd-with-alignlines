@@ -1,5 +1,5 @@
 import kebabCase from 'kebab-case';
-import { DefaultDirections, DirectionKey, NodePosition, NodePositionData } from './Container';
+import { DefaultDirections, DirectionKey, IContainer, NodePosition, NodePositionData } from './Container';
 
 export const checkDragOut = (nodePositionData: NodePosition, $container: HTMLElement): NodePosition => {
   let { x, y, w, h } = nodePositionData;
@@ -137,12 +137,10 @@ export const getGuideLines = (
   compareNodePosDataList.forEach((compareNodePosition) => {
     const guideLineResults = calcGuideLine(currentNodePosData, compareNodePosition, key, directions);
 
-    guideLineResults.forEach((result) => {
-      results.push({
-        i: compareNodePosition.i,
-        ...result,
-      })
-    });
+    guideLineResults.forEach(result => results.push({
+      i: compareNodePosition.i,
+      ...result,
+    }));
   });
 
   return results;
@@ -214,10 +212,6 @@ export const genReplaceResizeHandleStyles = () => {
   return replaceResizeHandleStyles;
 };
 
-export const toKebabCase = (string) => {
-
-};
-
 export const genHandleClasses = () => {
   const classes = {};
   resizableDirections.forEach(direction => {
@@ -228,3 +222,33 @@ export const genHandleClasses = () => {
 }
 
 export const noop: any = () => {};
+
+// 规则同css的padding
+export const getPaddingArr = (paddingSnap: IContainer['paddingSnap']) => {
+  if (typeof paddingSnap === 'undefined') return null;
+
+  if (typeof paddingSnap === 'number') {
+    if (paddingSnap === 0) return null;
+
+    return [paddingSnap, paddingSnap, paddingSnap, paddingSnap];
+  }
+
+  if (Array.isArray(paddingSnap)) {
+    if (paddingSnap.every(item => item === 0)) return null;
+
+    switch (paddingSnap.length) {
+      case 2: {
+        const [topBottom, leftRight] = paddingSnap;
+        return [topBottom, leftRight, topBottom, leftRight];
+      }
+      case 3: {
+        const [top, leftRight, bottom] = paddingSnap;
+        return [top, leftRight, bottom, leftRight];
+      }
+      case 4:
+        return paddingSnap;
+    }
+  }
+
+  return null;
+};
