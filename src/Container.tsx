@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Node } from './Node';
+import React, { MutableRefObject, useMemo, useRef, useState } from 'react';
+import { INodeProps, Node } from './Node';
 import classNames from 'classnames';
 import { ResizableProps } from 're-resizable';
 import 'document.contains';
 import './styles.less';
-import { calcLineValues, calcPosValues, checkDragOut, getGuideLines, noop } from './utils';
+import { calcLineValues, calcPosValues, checkDragOut, getGuideLines, getPaddingArr, noop } from './utils';
 
 /**
  * 表示组件支持通过 className 和 style 进行样式定制
@@ -29,6 +29,8 @@ export interface INode {
     style: React.CSSProperties;
     [propKey: string]: any;
   }) => React.ReactElement;
+
+  [extendPropName: string]: any;
 }
 
 export type DirectionKey = 'x' | 'y';
@@ -92,9 +94,12 @@ export interface IContainer {
   nodeStyle?: React.CSSProperties;
   nodeClassName?: string;
   resizableProps?: ResizableProps;
-  onNodeFocus?: (nodeId: string) => any;
-  onNodeBlur?: (nodeId: string) => any;
-  blurParent?: string;
+  activeNodeId?: string;
+  hoverNodeId?: string;
+  onClickNode?: INodeProps['onClick'];
+  containerRef?: MutableRefObject<any>;
+  mapNodeProps?: (node: INode, index: number) => any;
+  paddingSnap?: number | number[];
 }
 
 export function unique(array, compare = (a, b) => a === b) {
@@ -117,18 +122,17 @@ export function Container({
   nodeStyle,
   nodeClassName,
   resizableProps,
-  onNodeFocus,
-  onNodeBlur,
-  blurParent,
+  activeNodeId,
+  hoverNodeId,
+  onClickNode = noop,
+  containerRef,
+  mapNodeProps = noop,
+  paddingSnap,
 }: IContainer) {
-  const handleOutsideClickCbRef = useRef(null);
   const $container = useRef(null);
+  const $containerRef = containerRef || $container;
   const $children = useRef(null);
   const [resizeSnap, setResizeSnap] = useState<any>({});
-  const [activeNode, setActiveNode] = useState<{ id: string; $: HTMLElement }>({
-    id: '',
-    $: null,
-  });
   const [guideLines, setGuideLines] = useState<{
     indices: number[];
     vLines: GuideLinePositionData[];
@@ -138,24 +142,53 @@ export function Container({
     vLines: [],
     hLines: [],
   });
-  const containerPosition = useMemo(() => {
-    if ($container.current) {
+  const containerPosition = useMemo<NodePositionData>(() => {
+    if ($containerRef.current) {
       return createNodePositionData({
-        x: 0, y: 0, w: $container.current.clientWidth, h: $container.current.clientHeight,
+        x: 0, y: 0, w: $containerRef.current.clientWidth, h: $containerRef.current.clientHeight,
       });
     }
     return null;
-  }, [$container.current]);
+  }, [$containerRef.current]);
 
-  handleOutsideClickCbRef.current = (e) => {
-    if (activeNode.$ && !activeNode.$.contains(e.target as any)) {
-      if (blurParent && !document.querySelector(blurParent).contains(e.target)) {
-        return;
-      }
+  // 如果设置了容器 padding 辅助，则往四个角放上参照物，算辅助线的时候算上它们
+  const paddingSnapPositionArr = useMemo(() => {
+    if (!containerPosition) return null;
 
-      onNodeBlur(activeNode.id)
-      setActiveNode({ id: '', $: null });
-    }
+    const paddingArr = getPaddingArr(paddingSnap);
+
+    if (!paddingArr) return null;
+
+    const [top, right, bottom, left] = paddingArr;
+    const { w, h } = containerPosition;
+
+    // 给两个容器：
+    // 1. 左右padding的容器上下吸顶
+    // 2. 上下padding的左右吸顶，这样出来的吸附线不会太奇怪
+    return [
+      createNodePositionData({
+        x: left,
+        y: 0,
+        w: w - left - right,
+        h: h,
+      }),
+      createNodePositionData({
+        x: 0,
+        y: top,
+        w: w,
+        h: h - top - bottom,
+      }),
+    ];
+  }, [paddingSnap, containerPosition]);
+
+  const getCompareNodePosDataList = (currentNodeIndex: number): NodePositionData[] => {
+    const compareNodePosDataList = $children.current.filter((_, i) => i !== currentNodeIndex);
+
+    return [
+      ...compareNodePosDataList,
+      containerPosition,
+      ...paddingSnapPositionArr,
+    ];
   };
 
   const calcAndDrawLines = (
@@ -163,10 +196,10 @@ export function Container({
     compareNodePosDataList: NodePositionData[],
     directions = DefaultDirections,
   ) => {
-    const { v: x, indices: indices_x, lines: vLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'x', directions.x)
-    const { v: y, indices: indices_y, lines: hLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'y', directions.y)
+    const { v: x, indices: indices_x, lines: vLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'x', directions.x);
+    const { v: y, indices: indices_y, lines: hLines } = calcPosValues(currentNodePosData, compareNodePosDataList, 'y', directions.y);
 
-    const indices = unique(indices_x.concat(indices_y))
+    const indices = unique(indices_x.concat(indices_y));
 
     // TODO: x/y轴同时出辅助线且被吸附时，持续微拖会看到辅助线挪动
     // https://github.com/zcued/react-dragline/issues/9
@@ -210,21 +243,16 @@ export function Container({
       y,
     };
 
-    nextPosition = checkDragOut(nextPosition, $container.current);
+    nextPosition = checkDragOut(nextPosition, $containerRef.current);
 
-    const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
+    const compareNodePosDataList = getCompareNodePosDataList(index);
 
-    // if (compareNodePosDataList.length) {
     const currentNodePosData = createNodePositionData(nextPosition);
 
-    const snapPosition = calcAndDrawLines(currentNodePosData, [
-      ...compareNodePosDataList,
-      containerPosition,
-    ]);
+    const snapPosition = calcAndDrawLines(currentNodePosData, compareNodePosDataList);
 
     nextPosition.x = snapPosition.x;
     nextPosition.y = snapPosition.y;
-    // }
 
     onNodeMove(newNodes[index].id, nextPosition, index);
 
@@ -272,7 +300,7 @@ export function Container({
     onStart();
 
     const currentNodePosData = $children.current[index];
-    const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
+    const compareNodePosDataList = getCompareNodePosDataList(index);
 
     if (compareNodePosDataList.length) {
       const snap: any = {};
@@ -294,7 +322,7 @@ export function Container({
     }
   };
 
-  const onResizeStop = (index, direction, delta) => {
+  const onResizeStop = () => {
     setResizeSnap({});
     setGuideLines({ vLines: [], hLines: [], indices: [] });
   };
@@ -305,7 +333,7 @@ export function Container({
       x, y, w, h
     };
 
-    const compareNodePosDataList = $children.current.filter((_, i) => i !== index);
+    const compareNodePosDataList = getCompareNodePosDataList(index);
 
     if (compareNodePosDataList.length) {
       const currentNodePosData = createNodePositionData(nextPosition);
@@ -313,6 +341,7 @@ export function Container({
       const directions = getDirections(directionList);
 
       // 只用展示辅助线，不用处理吸附，吸附在起拖时就计算好了
+      // TODO：Resize有无处理容器和padding？
       calcAndDrawLines(currentNodePosData, compareNodePosDataList, directions);
     }
 
@@ -327,30 +356,40 @@ export function Container({
   };
 
   const renderNodes = () => {
-    return nodes.map((node, index) => (
-      <Node
-        key={node.id || index}
-        node={node}
-        onDrag={(e, { x, y }) => onDrag(index, { x, y })}
-        onDragStart={onStart}
-        onDragStop={onStop}
-        onResize={(e, direction, delta) => onResize(index, direction, delta)}
-        onResizeStart={(e, direction) => onResizeStart(index, direction)}
-        onResizeStop={(e, direction, delta) => onResizeStop(index, direction, delta)}
-        snap={resizeSnap}
-        active={activeNode.id === node.id}
-        className={nodeClassName}
-        style={nodeStyle}
-        resizableProps={resizableProps}
-        onClick={(e, node, element) => {
-          onNodeFocus(node.id);
-          setActiveNode({
-            id: node.id,
-            $: element,
-          });
-        }}
-      />
-    ));
+    return nodes.map((node, index) => {
+      let extendProps = {};
+
+      if (typeof mapNodeProps === 'function') {
+        try {
+          extendProps = mapNodeProps(node, index);
+        } catch (err) {
+          console.warn('mapNodeProps error', err);
+        }
+      }
+
+      return (
+        <Node
+          key={node.id || index}
+          node={node}
+          onDrag={(e, { x, y }) => onDrag(index, { x, y })}
+          onDragStart={onStart}
+          onDragStop={onStop}
+          onResize={(e, direction, delta) => onResize(index, direction, delta)}
+          onResizeStart={(e, direction) => onResizeStart(index, direction)}
+          onResizeStop={() => onResizeStop()}
+          snap={resizeSnap}
+          active={activeNodeId === node.id}
+          hover={hoverNodeId === node.id}
+          className={nodeClassName}
+          style={nodeStyle}
+          resizableProps={resizableProps}
+          onClick={(e, node, element) => {
+            onClickNode(e, node, element);
+          }}
+          {...extendProps}
+        />
+      );
+    });
   }
 
   const renderGuidelines = () => {
@@ -392,17 +431,11 @@ export function Container({
     )
   };
 
-  useEffect(() => {
-    document.addEventListener('click', (e) => {
-      handleOutsideClickCbRef.current(e);
-    });
-  }, []);
-
   return (
     <div
       className={classNames('react-rnd-dragline-container', containerClassName)}
       style={containerStyle}
-      ref={$container}
+      ref={$containerRef}
     >
       {renderNodes()}
       {renderGuidelines()}

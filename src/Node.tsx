@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { DraggableCore, DraggableData } from 'react-draggable';
 import { Resizable, ResizableProps } from 're-resizable';
 import classNames from 'classnames';
@@ -57,6 +57,7 @@ export interface INodeProps extends StyledProps {
   snap?: { x?: number[], y?: number[] };
   snapGap?: number;
   active?: boolean;
+  hover?: boolean;
   resizableProps?: ResizableProps;
 }
 
@@ -72,6 +73,7 @@ export function Node({
   snap,
   snapGap = 5,
   active,
+  hover,
   className,
   style,
   resizableProps,
@@ -100,6 +102,11 @@ export function Node({
     x: 0,
     y: 0,
   });
+
+  const defaultStyle = useMemo(() => ({
+    width: '100%',
+    height: '100%',
+  }), []);
 
   const {
     position: { x, y, w, h },
@@ -210,8 +217,9 @@ export function Node({
         onResize={doResize}
         onResizeStop={doResizeStop}
         enable={active ? undefined : {}}
-        className={classNames('react-rnd-dragline-node', className, {
+        className={classNames('react-rnd-dragline-node', className, `react-rnd-dragline-node_id_${node.id}`, {
           actived: active,
+          hover,
         })}
         style={{
           position: 'absolute',
@@ -231,10 +239,7 @@ export function Node({
       >
         {render({
           node,
-          style: {
-            width: '100%',
-            height: '100%',
-          }
+          style: defaultStyle,
         })}
       </Resizable>
     </DraggableCore>
