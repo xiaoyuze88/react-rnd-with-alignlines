@@ -2,11 +2,11 @@
 
 > React draggable/resizable with align lines while dragging or resizing.
 >
-> This repository is a combination of [react-rnd](https://github.com/bokuweb/react-rnd) and [react-dragline](https://github.com/zcued/react-dragline) to fit our requirement. Thx to bokuweb and zcued for their excellent job. 
+> This repository is a combination of [react-rnd](https://github.com/bokuweb/react-rnd) and [react-dragline](https://github.com/zcued/react-dragline) to fit our requirement. Thx to bokuweb and zcued for their excellent job.
 >
 > This component is design to be fully controlled, and focus only on the Node elements' size and position.
-> 
-> It will be useful for building a page builder or something like it. 
+>
+> It will be useful for building a page builder or something like it.
 
 ## Install
 
@@ -18,19 +18,19 @@ npm install --save react-rnd-with-alignlines
 ### Yarn
 ```bash
 yarn add react-rnd-with-alignlines
-```    
+```
 
 ## Basic Usage
 
 ```tsx
-import React, { useState } from 'react'
-import { Container, INode } from 'react-alignment-guides'
+import React, { useState } from 'react';
+import { Container, INode } from 'react-rnd-with-alignlines';
 
 function Node({
   style,
   node,
 }) {
-  return <div style={style}>{JSON.stringify(node)}</div>
+  return <div style={style}>{JSON.stringify(node)}</div>;
 }
 
 const componentMap = { Node };
@@ -69,13 +69,13 @@ function Example() {
        nodes={nodes.map(node => ({
         ...node,
         render(props) {
-          let Component = props.component;
+          let Component = node.component;
 
-          if (typeof node.component === 'string' && componentMap[node.component]) {
-            Component = componentMap[node.component];
+          if (typeof Component === 'string') {
+            Component = componentMap[Component] || Component;
           }
-  
-          return <Component {...props}/>;
+
+          return <Component {...props} />;
         }
       }))}
       onNodeMove={(nodeId, position, index) => {
