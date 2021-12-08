@@ -1,6 +1,6 @@
 {
 	"name": "react-rnd-with-alignlines",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "React draggable/resizable with align lines while dragging or resizing.",
 	"keywords": [
 		"drag",

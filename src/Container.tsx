@@ -153,11 +153,11 @@ export function Container({
 
   // 如果设置了容器 padding 辅助，则往四个角放上参照物，算辅助线的时候算上它们
   const paddingSnapPositionArr = useMemo(() => {
-    if (!containerPosition) return null;
+    if (!containerPosition) return [];
 
     const paddingArr = getPaddingArr(paddingSnap);
 
-    if (!paddingArr) return null;
+    if (!paddingArr) return [];
 
     const [top, right, bottom, left] = paddingArr;
     const { w, h } = containerPosition;
