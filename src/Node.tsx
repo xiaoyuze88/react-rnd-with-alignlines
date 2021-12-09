@@ -59,6 +59,7 @@ export interface INodeProps extends StyledProps {
   active?: boolean;
   hover?: boolean;
   resizableProps?: ResizableProps;
+  disabled?: boolean;
 }
 
 export function Node({
@@ -77,7 +78,13 @@ export function Node({
   className,
   style,
   resizableProps,
+  disabled,
 }: INodeProps) {
+  const {
+    position: { x, y, w, h },
+    render,
+  } = node;
+
   const $nodeRef = useRef(null);
   const dragStartDataRef = useRef<{
     x: number;
@@ -108,10 +115,13 @@ export function Node({
     height: '100%',
   }), []);
 
-  const {
-    position: { x, y, w, h },
-    render,
-  } = node;
+  const resizableStyle = useMemo<React.CSSProperties>(() => ({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    transform: `translate(${x}px, ${y}px)`,
+    ...style,
+  }), [x, y, style]);
 
   const doDragStart = (e, data) => {
     fastClickRef.current = {
@@ -126,6 +136,8 @@ export function Node({
       y: data.lastY - y,
     };
 
+    if (disabled) return;
+
     onDragStart(e, data);
   };
 
@@ -133,6 +145,9 @@ export function Node({
     fastClickRef.current = {
       tracking: false,
     }
+
+    if (disabled) return;
+
     onDrag(e, {
       x: data.lastX - dragStartDataRef.current.x,
       y: data.lastY - dragStartDataRef.current.y,
@@ -150,6 +165,9 @@ export function Node({
 
     fastClickRef.current = { tracking: false };
     dragStartDataRef.current = null;
+
+    if (disabled) return;
+
     onDragStop(e, data);
   };
 
@@ -216,18 +234,12 @@ export function Node({
         onResizeStart={doResizeStart}
         onResize={doResize}
         onResizeStop={doResizeStop}
-        enable={active ? undefined : {}}
+        enable={!disabled && active ? undefined : {}}
         className={classNames('react-rnd-dragline-node', className, `react-rnd-dragline-node_id_${node.id}`, {
           actived: active,
           hover,
         })}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          transform: `translate(${x}px, ${y}px)`,
-          ...style,
-        }}
+        style={resizableStyle}
         bounds={'parent'}
         boundsByDirection={true}
         ref={$nodeRef}

@@ -29,6 +29,8 @@ export interface INode {
     style: React.CSSProperties;
     [propKey: string]: any;
   }) => React.ReactElement;
+  disabled?: boolean;
+  style?: React.CSSProperties;
 
   [extendPropName: string]: any;
 }
@@ -357,7 +359,7 @@ export function Container({
 
   const renderNodes = () => {
     return nodes.map((node, index) => {
-      let extendProps = {};
+      let extendProps: any = {};
 
       if (typeof mapNodeProps === 'function') {
         try {
@@ -366,6 +368,8 @@ export function Container({
           console.warn('mapNodeProps error', err);
         }
       }
+
+      const { style: extendStyle, ...otherExtendProps } = extendProps;
 
       return (
         <Node
@@ -381,12 +385,17 @@ export function Container({
           active={activeNodeId === node.id}
           hover={hoverNodeId === node.id}
           className={nodeClassName}
-          style={nodeStyle}
+          style={{
+            ...nodeStyle,
+            ...extendStyle,
+            ...node.style,
+          }}
           resizableProps={resizableProps}
           onClick={(e, node, element) => {
             onClickNode(e, node, element);
           }}
-          {...extendProps}
+          disabled={node.disabled}
+          {...otherExtendProps}
         />
       );
     });
