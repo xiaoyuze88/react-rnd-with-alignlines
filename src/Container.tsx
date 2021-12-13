@@ -369,7 +369,7 @@ export function Container({
         }
       }
 
-      const { style: extendStyle, ...otherExtendProps } = extendProps;
+      const { style: extendStyle, className, ...otherExtendProps } = extendProps;
 
       return (
         <Node
@@ -384,7 +384,7 @@ export function Container({
           snap={resizeSnap}
           active={activeNodeId === node.id}
           hover={hoverNodeId === node.id}
-          className={nodeClassName}
+          className={classNames(nodeClassName, className)}
           style={{
             ...nodeStyle,
             ...extendStyle,
