@@ -30,6 +30,8 @@ export interface INode {
     [propKey: string]: any;
   }) => React.ReactElement;
   disabled?: boolean;
+  minHeight?: number;
+  minWidth?: number;
   style?: React.CSSProperties;
 
   [extendPropName: string]: any;

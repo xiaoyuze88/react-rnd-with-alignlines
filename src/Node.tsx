@@ -83,6 +83,8 @@ export function Node({
   const {
     position: { x, y, w, h },
     render,
+    minHeight,
+    minWidth,
   } = node;
 
   const $nodeRef = useRef(null);
@@ -211,6 +213,10 @@ export function Node({
     };
 
     directionList.forEach(direction => handlers[direction]());
+
+    // Resizable 在拖动过程中的状态貌似是不受控的，先这样处理后面再看有无更好办法
+    if (minHeight && nextPosition.h <= minHeight) nextPosition.h = minHeight;
+    if (minWidth && nextPosition.w <= minWidth) nextPosition.w = minWidth;
 
     onResize(e, directionList, nextPosition);
   };
